@@ -1,0 +1,25 @@
+﻿
+Microsoft Visual Studio Solution File, Format Version 12.00
+# Visual Studio Version 17
+VisualStudioVersion = 17.10.34916.146
+MinimumVisualStudioVersion = 10.0.40219.1
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Remout", "Remout\Remout.csproj", "{724F99A0-AB92-4737-9A79-86162440040F}"
+EndProject
+Global
+	GlobalSection(SolutionConfigurationPlatforms) = preSolution
+		Debug|Any CPU = Debug|Any CPU
+		Release|Any CPU = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(ProjectConfigurationPlatforms) = postSolution
+		{724F99A0-AB92-4737-9A79-86162440040F}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{724F99A0-AB92-4737-9A79-86162440040F}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{724F99A0-AB92-4737-9A79-86162440040F}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{724F99A0-AB92-4737-9A79-86162440040F}.Release|Any CPU.Build.0 = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(SolutionProperties) = preSolution
+		HideSolutionNode = FALSE
+	EndGlobalSection
+	GlobalSection(ExtensibilityGlobals) = postSolution
+		SolutionGuid = {46C56F79-712F-47BE-9915-35F0322D187C}
+	EndGlobalSection
+EndGlobal
