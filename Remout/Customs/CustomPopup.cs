@@ -1,14 +1,11 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
-using System.Windows;
+﻿using System.Windows;
+using Application = System.Windows.Application;
 
 namespace Remout.Customs
 {
     public class CustomPopup : Window
     {
+        public CustomPopup() { }
         public CustomPopup(
             bool ShowInTaskBar = false,
             double Width = 0,

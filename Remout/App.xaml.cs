@@ -1,34 +1,44 @@
 ﻿using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
-using Remout.View;
-using Remout.ViewModel;
+using Prism.Ioc;
+using Prism.Unity;
+using Remout.Views;
+using Remout.ViewModels;
 using System.Data;
 using System.Windows;
+using Remout.Services;
+using Remout.SharedData;
 
 namespace Remout
 {
     /// <summary>
     /// Interaction logic for App.xaml
     /// </summary>
-    public partial class App : Application
+    public partial class App : PrismApplication
     {
-        public static IHost AppHost { get; private set; }
         public App()
         {
-            AppHost = Host.CreateDefaultBuilder().ConfigureServices((services, config) =>
-            {
-                config.AddTransient<MainWindow>();
-                config.AddTransient<MainWindowViewModel>();
-            }).Build();
+
         }
 
-        protected override async void OnStartup(StartupEventArgs e)
+        private MainWindow mainWindow;
+        protected override Window CreateShell()
         {
-            await AppHost!.StartAsync();
+            mainWindow = Container.Resolve<MainWindow>();
+            return mainWindow;
+        }
 
-            var startupWindow = AppHost.Services.GetRequiredService<MainWindow>();
-            startupWindow.Show();
-            base.OnStartup(e);
+        protected override void RegisterTypes(IContainerRegistry containerRegistry)
+        {
+            containerRegistry.RegisterSingleton<IMouseClickService, MouseClickService>();
+            containerRegistry.RegisterSingleton<ISharedDataStore, SharedDataStore>();
+            containerRegistry.RegisterSingleton<IUpnpService, UpnpService>();
+        }
+
+        protected override void OnExit(ExitEventArgs e)
+        {
+
+            base.OnExit(e);
         }
     }
 
