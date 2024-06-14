@@ -44,10 +44,10 @@ namespace Remout.Services
             return mapping;
         }
 
-        public async Task<int?> OpenPort(int port, Protocol protocol)
+        public async Task<int> OpenPort(int port, Protocol protocol)
         {
             //TODO: Handle device null
-            if (device == null) if (!await GetNatDevice()) return null;
+            if (device == null) if (!await GetNatDevice()) return -1;
             var openPorts = await CheckAllOpenPorts();
             if (openPorts != null)
             {

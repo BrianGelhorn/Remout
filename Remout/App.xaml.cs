@@ -30,9 +30,9 @@ namespace Remout
 
         protected override void RegisterTypes(IContainerRegistry containerRegistry)
         {
-            containerRegistry.RegisterSingleton<IMouseClickService, MouseClickService>();
             containerRegistry.RegisterSingleton<ISharedDataStore, SharedDataStore>();
             containerRegistry.RegisterSingleton<IUpnpService, UpnpService>();
+            containerRegistry.RegisterSingleton<ICommunicationService, CommunicationService>();
         }
 
         protected override void OnExit(ExitEventArgs e)

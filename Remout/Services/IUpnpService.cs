@@ -9,7 +9,7 @@ namespace Remout.Services
 {
     public interface IUpnpService
     {
-        public Task<int?> OpenPort(int port, Protocol protocol);
+        public Task<int> OpenPort(int port, Protocol protocol);
         public Task<string> GetPublicIp();
     }
 }

@@ -8,10 +8,8 @@ using System.Windows;
 using LibVLCSharp.Shared;
 using Open.Nat;
 using Remout.Services;
-using Vlc.DotNet.Core;
 using System.Reflection;
 using Remout.Views;
-using Vlc.DotNet.Forms;
 
 namespace Remout.ViewModels
 {
@@ -33,8 +31,8 @@ namespace Remout.ViewModels
             set => SetProperty(ref _ip, value);
         }
 
-        private int? _port;
-        public int? Port
+        private int _port;
+        public int Port
         {
             get => _port;
             set => SetProperty(ref _port, value);
@@ -52,7 +50,7 @@ namespace Remout.ViewModels
 
         public DelegateCommand OnHostButtonClickedCommand { get; set; }
         public DelegateCommand<Window> CloseWindowCommand { get; set; }
-        public HostPopupViewModel(ISharedDataStore sharedDataStore, IUpnpService upnpService)
+        public HostPopupViewModel(ISharedDataStore sharedDataStore, IUpnpService upnpService, ICommunicationService communicationService)
         {
             DataStore = sharedDataStore;
             Movie = sharedDataStore.CurrentMovieSelected;
@@ -64,12 +62,14 @@ namespace Remout.ViewModels
                 Ip = await upnpService.GetPublicIp();
                 Port = await upnpService.OpenPort(4500, Protocol.Tcp);
                 if (Ip == "" & Port == -1) return;
+                communicationService.CreateAndStartTcpServer(Port);
                 CanHostMovie = true;
             });
         }
 
         private void CloseWindow(Window window)
         {
+
             window.Close();
         }
 
@@ -85,6 +85,7 @@ namespace Remout.ViewModels
             var movieData = DataStore.CurrentMovieSelected;
             vlcControl.Play(movieData.MovieDir);
             WindowVisibility = Visibility.Collapsed;
+            vlcWindow.Closing += (_, _) => { WindowVisibility = Visibility.Visible;};
             vlcWindow.ShowDialog();
         }
     }
