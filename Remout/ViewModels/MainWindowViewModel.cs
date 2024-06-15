@@ -51,8 +51,8 @@ namespace Remout.ViewModels
 
         private void OpenJoinWindow()
         {
-            var windowToOpen = _containerExtension.Resolve<JoinWindow>();
-            windowToOpen.ShowDialog();
+            var joinHostWindow = _containerExtension.Resolve<JoinWindow>();
+            joinHostWindow.ShowDialog();
         }
 
         private bool CanJoinHost()

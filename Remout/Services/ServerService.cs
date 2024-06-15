@@ -1,50 +1,21 @@
-﻿using System;
+﻿using Remout.Customs;
+using System;
 using System.Collections.Generic;
-using System.Collections.ObjectModel;
 using System.Linq;
-using System.Net;
 using System.Net.Sockets;
+using System.Net;
 using System.Text;
 using System.Threading.Tasks;
-using Remout.Customs;
 
 namespace Remout.Services
 {
-    public class CommunicationService : ICommunicationService
+    public class ServerService : IServerService
     {
         private readonly List<ConnectionTypes.FileConnection> _fileTcpClients = [];
         private readonly List<ConnectionTypes.ChatConnection> _chatTcpClients = [];
         private readonly List<ConnectionTypes.SyncMovieConnection> _syncMovieTcpClients = [];
 
-        public TcpListener CreateAndStartTcpServer(int port)
-        {
-            var tcpServer = new TcpListener(IPAddress.Any, port) { ExclusiveAddressUse = true };
-            tcpServer.Start();
-            Task.Run(async () => { await ListenForConnections(tcpServer);});
-            return tcpServer;
-        }
-
-        public void StopTcpServer()
-        {
-
-        }
-
-        public Task ConnectToServer(string ip)
-        {
-
-        }
-
-        public async Task ListenForConnections(TcpListener tcpServer)
-        {
-            while (true)
-            {
-                var tcpClient = await tcpServer.AcceptTcpClientAsync();
-                await ClassifyByConnectionType(tcpClient);
-                await Task.Delay(50);
-            }
-        }
-
-        public async Task ListenForData()
+        private async Task ListenForData()
         {
             foreach (var client in _fileTcpClients)
             {
@@ -60,7 +31,6 @@ namespace Remout.Services
                 var stream = client.GetStream();
             }
         }
-
         private async Task ClassifyByConnectionType(TcpClient tcpClient)
         {
             var stream = tcpClient.GetStream();
@@ -80,9 +50,33 @@ namespace Remout.Services
                 case ConnectionTypes.ConnectionType.SyncMovie:
                     _syncMovieTcpClients.Add(new ConnectionTypes.SyncMovieConnection(tcpClient));
                     break;
+                case ConnectionTypes.ConnectionType.CheckPort:
+                    await tcpClient.GetStream().WriteAsync(Encoding.UTF8.GetBytes("Remout"));
+                    break;
                 default:
                     throw new ArgumentOutOfRangeException();
             }
+        }
+        public TcpListener CreateAndStartTcpServer(int port)
+        {
+            var tcpServer = new TcpListener(IPAddress.Any, port) { ExclusiveAddressUse = true };
+            tcpServer.Start();
+            Task.Run(async () => { await ListenForConnections(tcpServer); });
+            return tcpServer;
+        }
+        public async Task ListenForConnections(TcpListener tcpServer)
+        {
+            while (true)
+            {
+                var tcpClient = await tcpServer.AcceptTcpClientAsync();
+                await ClassifyByConnectionType(tcpClient);
+                await Task.Delay(50);
+            }
+        }
+        public void StopTcpServer(TcpListener server)
+        {
+            server.Stop();
+            server.Dispose();
         }
     }
 }

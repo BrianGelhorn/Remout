@@ -20,7 +20,8 @@ namespace Remout.Customs
         {
             File = 0,
             Chat =1,
-            SyncMovie = 2
+            SyncMovie = 2,
+            CheckPort = 3
         }
 
         static Type GetConnectionType(ConnectionType connectionType)

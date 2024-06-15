@@ -2,9 +2,12 @@
 using Prism.Mvvm;
 using System;
 using System.Collections.Generic;
+using System.Globalization;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
+using Remout.Customs;
+using Remout.Services;
 
 namespace Remout.ViewModels
 {
@@ -25,8 +28,10 @@ namespace Remout.ViewModels
         }
         public DelegateCommand JoinToHostWithIpCommand { get; set; }
 
-        public JoinWindowViewModel()
+        private IClientService _clientService;
+        public JoinWindowViewModel(IClientService clientService)
         {
+            _clientService = clientService; 
             JoinToHostWithIpCommand = new DelegateCommand(JoinToHostWithIp, CanExecuteJoinToHostWithIp);
         }
 
@@ -34,9 +39,12 @@ namespace Remout.ViewModels
         {
             return true;
         }
-        public void JoinToHostWithIp()
+        public async void JoinToHostWithIp()
         {
-
+            var port = await _clientService.GetHostPort(Ip);
+            if(port == -1) return;
+            await _clientService.GetHostPort("181.46.193.8");
+            await _clientService.ConnectToHost(Ip, port, ConnectionTypes.ConnectionType.File);
         }
     }
 }

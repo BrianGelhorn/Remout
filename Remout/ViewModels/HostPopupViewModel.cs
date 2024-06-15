@@ -50,7 +50,7 @@ namespace Remout.ViewModels
 
         public DelegateCommand OnHostButtonClickedCommand { get; set; }
         public DelegateCommand<Window> CloseWindowCommand { get; set; }
-        public HostPopupViewModel(ISharedDataStore sharedDataStore, IUpnpService upnpService, ICommunicationService communicationService)
+        public HostPopupViewModel(ISharedDataStore sharedDataStore, IUpnpService upnpService, IServerService serverService)
         {
             DataStore = sharedDataStore;
             Movie = sharedDataStore.CurrentMovieSelected;
@@ -62,7 +62,7 @@ namespace Remout.ViewModels
                 Ip = await upnpService.GetPublicIp();
                 Port = await upnpService.OpenPort(4500, Protocol.Tcp);
                 if (Ip == "" & Port == -1) return;
-                communicationService.CreateAndStartTcpServer(Port);
+                serverService.CreateAndStartTcpServer(Port);
                 CanHostMovie = true;
             });
         }
