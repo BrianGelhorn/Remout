@@ -21,8 +21,18 @@ namespace Remout.ViewModels
 
         string _currentDir = Path.GetDirectoryName(Assembly.GetExecutingAssembly().Location)!;
 
-        public DelegateCommand<object> OnMovieClickedCommand;
-        public DelegateCommand JoinToHostCommand;
+        private DelegateCommand<object> _onMovieClickedCommand;
+        public DelegateCommand<object> OnMovieClickedCommand
+        {
+            get => _onMovieClickedCommand;
+            set => SetProperty(ref _onMovieClickedCommand, value);
+        }
+        private DelegateCommand _joinToHostCommand;
+        public DelegateCommand JoinToHostCommand
+        {
+            get => _joinToHostCommand;
+            set => SetProperty(ref _joinToHostCommand, value);
+        }
         private bool canSelectMovie = true;
         private bool canJoinHost = true;
         private IContainerExtension _containerExtension;
@@ -34,14 +44,15 @@ namespace Remout.ViewModels
             _sharedDataStore = sharedDataStore;
             var imageAddButtonDir = new Uri(Path.Combine(_currentDir, "Media", "Thumbnails", "cross_image.png"));
             var addMovieButton = new MovieAdd(imageAddButtonDir);
-            MoviesList.Add(addMovieButton);
             OnMovieClickedCommand = new DelegateCommand<object>(AddorOpenMovie, CanExecuteAddOrOpenMovie);
             JoinToHostCommand = new DelegateCommand(OpenJoinWindow, CanJoinHost);
+            MoviesList.Add(addMovieButton);
         }
 
         private void OpenJoinWindow()
         {
-
+            var windowToOpen = _containerExtension.Resolve<JoinWindow>();
+            windowToOpen.ShowDialog();
         }
 
         private bool CanJoinHost()

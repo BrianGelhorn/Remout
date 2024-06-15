@@ -32,7 +32,7 @@
 				HorizontalAlignment="Center"
 				Content="Remout"
 				FontSize="24" />
-			<Button Grid.Column="1" Content="Join To Host" />
+            <Button Grid.Column="1" Content="Join To Host" Command="{Binding JoinToHostCommand}"/>
 		</Grid>
 		<ItemsControl
 			Grid.Row="1"

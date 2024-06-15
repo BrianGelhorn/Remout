@@ -29,6 +29,11 @@ namespace Remout.Services
 
         }
 
+        public Task ConnectToServer(string ip)
+        {
+
+        }
+
         public async Task ListenForConnections(TcpListener tcpServer)
         {
             while (true)
