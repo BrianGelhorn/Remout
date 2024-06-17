@@ -20,7 +20,7 @@ namespace Remout.Services
             var tcpClient = new TcpClient();
             await tcpClient.ConnectAsync(ip, port);
             var tcpStream = tcpClient.GetStream();
-            var dataToSend = Encoding.UTF8.GetBytes(connectionType.ToString());
+            var dataToSend = Encoding.UTF8.GetBytes(((int)connectionType).ToString());
             await tcpStream.WriteAsync(dataToSend);
             return connectionType switch
             {
