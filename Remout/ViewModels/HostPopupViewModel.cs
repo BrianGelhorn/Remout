@@ -11,6 +11,7 @@ using LibVLCSharp.Shared;
 using Open.Nat;
 using Remout.Services;
 using System.Reflection;
+using System.Windows.Threading;
 using Remout.Customs;
 using Remout.Views;
 
@@ -54,8 +55,10 @@ namespace Remout.ViewModels
 
         public DelegateCommand OnHostButtonClickedCommand { get; set; }
         public DelegateCommand<Window> CloseWindowCommand { get; set; }
+        private SynchronizationContext uiContext;
         public HostPopupViewModel(ISharedDataStore sharedDataStore, IUpnpService upnpService)
         {
+            uiContext = SynchronizationContext.Current;
             DataStore = sharedDataStore;
             Movie = sharedDataStore.CurrentMovieSelected;
             OnHostButtonClickedCommand =
@@ -67,6 +70,7 @@ namespace Remout.ViewModels
                 Port = await upnpService.OpenPort(4500, Protocol.Tcp);
                 if (Ip == "" & Port == -1) return;
                 tcpServer = new TcpServer(IPAddress.Any, Port);
+                Task.Run(tcpServer.ListenForConnections);
                 tcpServer.ConnectionReceived += OnDeviceConnected;
                 CanHostMovie = true;
             });
@@ -74,9 +78,21 @@ namespace Remout.ViewModels
 
         private async void OnDeviceConnected(object? sender, TcpClient tcpClient)
         {
-            if(!(tcpClient is ConnectionTypes.SyncMovieConnection)) return;
-            var name = await tcpServer.AskForData(tcpClient, TcpServer.DataType.Name, 128);
-            ParticipantsList.Add(name);
+            switch(tcpClient)
+            {
+                case ConnectionTypes.SyncMovieConnection:
+                {
+                    var name = await tcpServer.AskForData(tcpClient, TcpServer.DataType.Name, 128);
+                    uiContext.Send(x => ParticipantsList.Add(name), null);
+                    break;
+                }
+                case ConnectionTypes.FileConnection fileConnection:
+                {
+                    await fileConnection.SendFileAsync(Movie!.Title!, File.OpenRead(Movie!.MovieDir!.ToString()));
+                    break;
+                }
+                default: return;
+            }
         }
 
         private void CloseWindow(Window window)
@@ -97,7 +113,7 @@ namespace Remout.ViewModels
             var movieData = DataStore.CurrentMovieSelected;
             vlcControl.Play(movieData.MovieDir);
             WindowVisibility = Visibility.Collapsed;
-            vlcWindow.Closing += (_, _) => { WindowVisibility = Visibility.Visible;};
+            vlcWindow.Closing += (_, _) => { WindowVisibility = Visibility.Visible;}; 
             vlcWindow.ShowDialog();
         }
     }

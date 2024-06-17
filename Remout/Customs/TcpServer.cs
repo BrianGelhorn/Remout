@@ -8,8 +8,12 @@ using System.Threading.Tasks;
 
 namespace Remout.Customs
 {
-    public class TcpServer(IPAddress localaddr, int port) : TcpListener(localaddr, port)
+    public class TcpServer : TcpListener
     {
+        public TcpServer(IPAddress localaddr, int port) : base(localaddr, port)
+        {
+            Start();
+        }
         private readonly List<ConnectionTypes.FileConnection> _fileTcpClients= [];
         private readonly List<ConnectionTypes.ChatConnection> _chatTcpClients = [];
         private readonly List<ConnectionTypes.SyncMovieConnection> _syncMovieTcpClients = [];
@@ -65,6 +69,7 @@ namespace Remout.Customs
             }
         }
 
+
         public async Task<string> AskForData(TcpClient tcpClient, DataType dataType, int bufferSize)
         {
             var tcpStream = tcpClient.GetStream();
@@ -79,9 +84,8 @@ namespace Remout.Customs
         {
             while (true)
             {
-                var tcpClient = await AcceptTcpClientAsync();
-                var tcpConnection = await ClassifyByConnectionType(tcpClient);
-                OnConnectionReceived(tcpConnection);
+                var tcpClient = await ClassifyByConnectionType(await AcceptTcpClientAsync());
+                OnConnectionReceived(tcpClient);
                 await Task.Delay(50);
             }
         }

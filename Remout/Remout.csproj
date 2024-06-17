@@ -11,9 +11,13 @@
 
   <ItemGroup>
     <None Remove="Media\cross_image.png" />
+    <None Remove="Media\Movies\cross_image.png" />
   </ItemGroup>
 
   <ItemGroup>
+    <Content Include="Media\Movies\cross_image.png">
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+    </Content>
     <Content Include="Media\Thumbnails\cross_image.png">
       <CopyToOutputDirectory>Always</CopyToOutputDirectory>
     </Content>

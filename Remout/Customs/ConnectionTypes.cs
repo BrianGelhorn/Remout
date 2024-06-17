@@ -2,13 +2,16 @@
 using System.Collections.Generic;
 using System.Diagnostics;
 using System.Formats.Cbor;
+using System.Globalization;
 using System.IO;
 using System.Linq;
 using System.Net.Sockets;
+using System.Reflection;
 using System.Runtime.Serialization.Formatters.Binary;
 using System.Text;
 using System.Threading.Tasks;
 using System.Windows.Media.Animation;
+using Microsoft.Extensions.FileProviders;
 using Newtonsoft.Json;
 using Remout.Models;
 
@@ -42,15 +45,36 @@ namespace Remout.Customs
                 Client = tcpClient.Client;
             }
 
-            public async Task StartListeningForFile()
+            public async Task ListenForFile()
             {
                 var tcpStream = GetStream();
-                while (true)
+                if (!tcpStream.DataAvailable) return;
+                var buffer = new byte[4096];
+                var bufferLen = await tcpStream.ReadAsync(buffer);
+                var movieData = Encoding.UTF8.GetString(buffer, 0, bufferLen);
+                var parsed = int.TryParse(movieData.Split(";")[0], out var movieSize);
+                if (!parsed) return;
+                var movieTitle = movieData.Split(";")[1];
+                var currentDir = Path.GetDirectoryName(Assembly.GetExecutingAssembly().Location)!;
+                var pathForFile = Path.Combine(currentDir, "Media", "Movies", movieTitle);
+                var fileStream = File.Create(pathForFile);
+                for (var i = 0; i < Math.Ceiling((decimal)movieSize / 4096); i++)
                 {
-                    var buffer = new byte[4096];
-                    await tcpStream.ReadExactlyAsync(buffer);
-                    var decodedData = Encoding.UTF8.GetString(buffer);
-                    await Task.Delay(50);
+                    bufferLen = await tcpStream.ReadAsync(buffer);
+                    await fileStream.WriteAsync(buffer);
+                }
+            }
+
+            public async Task SendFileAsync(string Name, FileStream file)
+            {
+                var tcpStream = GetStream();
+                var fileInfo = Encoding.UTF8.GetBytes($"{(file.Length).ToString()};{Name}");
+                await tcpStream.WriteAsync(fileInfo);
+                var buffer = new byte[4096];
+                for (var i = 0; i < Math.Ceiling((double)file.Length / 4096); i++)
+                {
+                    var bufferlen = await file.ReadAsync(buffer);
+                    await tcpStream.WriteAsync(buffer, 0, bufferlen);
                 }
             }
         }
