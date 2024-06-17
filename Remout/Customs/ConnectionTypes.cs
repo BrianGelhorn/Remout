@@ -40,10 +40,9 @@ namespace Remout.Customs
             public FileConnection(TcpClient tcpClient) : this()
             {
                 Client = tcpClient.Client;
-                Task.Run(ListenForData);
             }
 
-            private async Task ListenForData()
+            public async Task StartListeningForFile()
             {
                 var tcpStream = GetStream();
                 while (true)
@@ -73,6 +72,18 @@ namespace Remout.Customs
                 Task.Run(ListenForData);
             }
 
+            public event EventHandler<TcpServer.DataType> AskedForData;
+
+            protected virtual void OnAskedForData(TcpServer.DataType dataType)
+            {
+                AskedForData.Invoke(this, dataType);
+            }
+
+            public async Task SendData(string data)
+            {
+                await GetStream().WriteAsync(Encoding.UTF8.GetBytes(data));
+            }
+
             private async Task ListenForData()
             {
                 var tcpStream = GetStream();
@@ -83,6 +94,7 @@ namespace Remout.Customs
                         var buffer = new byte[128];
                         await tcpStream.ReadExactlyAsync(buffer);
                         var decodedData = Encoding.UTF8.GetString(buffer);
+                        OnAskedForData((TcpServer.DataType)(int.Parse(decodedData)));
                     }
                     await Task.Delay(50);
                 }
@@ -108,6 +120,19 @@ namespace Remout.Customs
             {
 
             }
+        }
+    }
+
+    public class CheckPortConnection() : TcpClient
+    {
+        public CheckPortConnection(TcpClient tcpClient) : this()
+        {
+            Client = tcpClient.Client;
+        }
+
+        public async Task SendPortAnswer()
+        {
+            await GetStream().WriteAsync("Remout"u8.ToArray());
         }
     }
 }

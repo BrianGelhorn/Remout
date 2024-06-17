@@ -32,7 +32,6 @@ namespace Remout
         {
             containerRegistry.RegisterSingleton<ISharedDataStore, SharedDataStore>();
             containerRegistry.RegisterSingleton<IUpnpService, UpnpService>();
-            containerRegistry.RegisterSingleton<IServerService, ServerService>();
             containerRegistry.RegisterSingleton<IClientService, ClientService>();
         }
 

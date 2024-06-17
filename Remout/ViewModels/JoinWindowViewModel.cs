@@ -2,6 +2,8 @@
 using Prism.Mvvm;
 using System;
 using System.Collections.Generic;
+using System.ComponentModel;
+using System.Diagnostics;
 using System.Globalization;
 using System.Linq;
 using System.Text;
@@ -28,7 +30,7 @@ namespace Remout.ViewModels
         }
         public DelegateCommand JoinToHostWithIpCommand { get; set; }
 
-        private IClientService _clientService;
+        private readonly IClientService _clientService;
         public JoinWindowViewModel(IClientService clientService)
         {
             _clientService = clientService; 
@@ -39,12 +41,28 @@ namespace Remout.ViewModels
         {
             return true;
         }
+        //TODO: Handle errors
         public async void JoinToHostWithIp()
         {
             var port = await _clientService.GetHostPort(Ip);
             if(port == -1) return;
-            await _clientService.GetHostPort("181.46.193.8");
-            await _clientService.ConnectToHost(Ip, port, ConnectionTypes.ConnectionType.File);
+            var movieConnection =
+                await _clientService.ConnectToHost(Ip, port, ConnectionTypes.ConnectionType.SyncMovie) as
+                    ConnectionTypes.SyncMovieConnection;
+            movieConnection!.AskedForData += async (sender, args) =>
+            {
+                switch (args)
+                {
+                    case TcpServer.DataType.Name:
+                        await movieConnection.SendData(Name);
+                        break;
+                    default: break;
+                }
+            };
+            var fileConnection = 
+                await _clientService.ConnectToHost(Ip, port, ConnectionTypes.ConnectionType.File) as 
+                    ConnectionTypes.FileConnection;
+
         }
     }
 }

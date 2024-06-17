@@ -1,5 +1,7 @@
 ﻿using System.Collections.ObjectModel;
 using System.IO;
+using System.Net;
+using System.Net.Sockets;
 using Prism.Commands;
 using Prism.Mvvm;
 using Remout.Models;
@@ -9,6 +11,7 @@ using LibVLCSharp.Shared;
 using Open.Nat;
 using Remout.Services;
 using System.Reflection;
+using Remout.Customs;
 using Remout.Views;
 
 namespace Remout.ViewModels
@@ -47,10 +50,11 @@ namespace Remout.ViewModels
         }
 
         public ObservableCollection<string> ParticipantsList { get; set; } = [];
+        private TcpServer tcpServer;
 
         public DelegateCommand OnHostButtonClickedCommand { get; set; }
         public DelegateCommand<Window> CloseWindowCommand { get; set; }
-        public HostPopupViewModel(ISharedDataStore sharedDataStore, IUpnpService upnpService, IServerService serverService)
+        public HostPopupViewModel(ISharedDataStore sharedDataStore, IUpnpService upnpService)
         {
             DataStore = sharedDataStore;
             Movie = sharedDataStore.CurrentMovieSelected;
@@ -62,9 +66,17 @@ namespace Remout.ViewModels
                 Ip = await upnpService.GetPublicIp();
                 Port = await upnpService.OpenPort(4500, Protocol.Tcp);
                 if (Ip == "" & Port == -1) return;
-                serverService.CreateAndStartTcpServer(Port);
+                tcpServer = new TcpServer(IPAddress.Any, Port);
+                tcpServer.ConnectionReceived += OnDeviceConnected;
                 CanHostMovie = true;
             });
+        }
+
+        private async void OnDeviceConnected(object? sender, TcpClient tcpClient)
+        {
+            if(!(tcpClient is ConnectionTypes.SyncMovieConnection)) return;
+            var name = await tcpServer.AskForData(tcpClient, TcpServer.DataType.Name, 128);
+            ParticipantsList.Add(name);
         }
 
         private void CloseWindow(Window window)
