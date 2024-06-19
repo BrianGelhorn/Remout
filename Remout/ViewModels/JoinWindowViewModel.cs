@@ -59,10 +59,10 @@ namespace Remout.ViewModels
                     default: break;
                 }
             };
-            var fileConnection = 
-                await _clientService.ConnectToHost(Ip, port, ConnectionTypes.ConnectionType.File) as 
+            var fileConnection =
+                await _clientService.ConnectToHost(Ip, port, ConnectionTypes.ConnectionType.File) as
                     ConnectionTypes.FileConnection;
-
+            await fileConnection.ListenForFile();
         }
     }
 }

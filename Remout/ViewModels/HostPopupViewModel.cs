@@ -88,7 +88,7 @@ namespace Remout.ViewModels
                 }
                 case ConnectionTypes.FileConnection fileConnection:
                 {
-                    await fileConnection.SendFileAsync(Movie!.Title!, File.OpenRead(Movie!.MovieDir!.ToString()));
+                    await fileConnection.SendFileAsync(Movie!.Title!, File.OpenRead(Movie!.MovieDir!.AbsolutePath));
                     break;
                 }
                 default: return;
@@ -113,7 +113,7 @@ namespace Remout.ViewModels
             var movieData = DataStore.CurrentMovieSelected;
             vlcControl.Play(movieData.MovieDir);
             WindowVisibility = Visibility.Collapsed;
-            vlcWindow.Closing += (_, _) => { WindowVisibility = Visibility.Visible;}; 
+            vlcWindow.Closing += (_, _) => { WindowVisibility = Visibility.Visible;};
             vlcWindow.ShowDialog();
         }
     }

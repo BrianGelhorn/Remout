@@ -20,7 +20,8 @@ namespace Remout.Customs
 
         public enum DataType
         {
-            Name = 10
+            Name = 10,
+            Time = 11
         }
 
         private async Task ListenForData()

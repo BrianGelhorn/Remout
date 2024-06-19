@@ -8,6 +8,7 @@ using System.Linq;
 using System.Net.Sockets;
 using System.Reflection;
 using System.Runtime.Serialization.Formatters.Binary;
+using System.Security.Cryptography;
 using System.Text;
 using System.Threading.Tasks;
 using System.Windows.Media.Animation;
@@ -43,13 +44,14 @@ namespace Remout.Customs
             public FileConnection(TcpClient tcpClient) : this()
             {
                 Client = tcpClient.Client;
+                Task.Run(ListenForFile);
             }
 
+            //TODO: Implement MD5 File Verification
             public async Task ListenForFile()
             {
                 var tcpStream = GetStream();
-                if (!tcpStream.DataAvailable) return;
-                var buffer = new byte[4096];
+                var buffer = new byte[2048];
                 var bufferLen = await tcpStream.ReadAsync(buffer);
                 var movieData = Encoding.UTF8.GetString(buffer, 0, bufferLen);
                 var parsed = int.TryParse(movieData.Split(";")[0], out var movieSize);
@@ -58,11 +60,23 @@ namespace Remout.Customs
                 var currentDir = Path.GetDirectoryName(Assembly.GetExecutingAssembly().Location)!;
                 var pathForFile = Path.Combine(currentDir, "Media", "Movies", movieTitle);
                 var fileStream = File.Create(pathForFile);
-                for (var i = 0; i < Math.Ceiling((decimal)movieSize / 4096); i++)
+                bufferLen = await tcpStream.ReadAsync(buffer);
+                await fileStream.WriteAsync(buffer, 0, bufferLen);
+                while (true)
                 {
                     bufferLen = await tcpStream.ReadAsync(buffer);
-                    await fileStream.WriteAsync(buffer);
+                    if (bufferLen == 0) break;
+                    await fileStream.WriteAsync(buffer, 0, bufferLen);
                 }
+                fileStream.Close();
+                OnFileCompletelyReceived();
+            }
+
+            public event EventHandler FileCompletelyReceived;
+
+            public void OnFileCompletelyReceived()
+            {
+                FileCompletelyReceived.Invoke(this, EventArgs.Empty);
             }
 
             public async Task SendFileAsync(string Name, FileStream file)
@@ -70,12 +84,16 @@ namespace Remout.Customs
                 var tcpStream = GetStream();
                 var fileInfo = Encoding.UTF8.GetBytes($"{(file.Length).ToString()};{Name}");
                 await tcpStream.WriteAsync(fileInfo);
-                var buffer = new byte[4096];
-                for (var i = 0; i < Math.Ceiling((double)file.Length / 4096); i++)
+                var buffer = new byte[8192];
+                while (true)
                 {
                     var bufferlen = await file.ReadAsync(buffer);
+                    if(bufferlen == 0) break;
                     await tcpStream.WriteAsync(buffer, 0, bufferlen);
                 }
+                file.Close();
+                Close();
+                Dispose();
             }
         }
 
