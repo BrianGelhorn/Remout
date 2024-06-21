@@ -47,8 +47,8 @@ namespace Remout.ViewModels
             var port = await _clientService.GetHostPort(Ip);
             if(port == -1) return;
             var movieConnection =
-                await _clientService.ConnectToHost(Ip, port, ConnectionTypes.ConnectionType.SyncMovie) as
-                    ConnectionTypes.SyncMovieConnection;
+                await _clientService.ConnectToHost(Ip, port, ConnectionTypes.ConnectionType.InitialConnection) as
+                    ConnectionTypes.InitialConnection;
             movieConnection!.AskedForData += async (sender, args) =>
             {
                 switch (args)
@@ -62,7 +62,7 @@ namespace Remout.ViewModels
             var fileConnection =
                 await _clientService.ConnectToHost(Ip, port, ConnectionTypes.ConnectionType.File) as
                     ConnectionTypes.FileConnection;
-            await fileConnection.ListenForFile();
+            await fileConnection!.ListenForFile();
         }
     }
 }

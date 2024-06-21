@@ -5,7 +5,6 @@ namespace Remout.Customs
 {
     public class CustomPopup : Window
     {
-        public CustomPopup() { }
         public CustomPopup(
             bool ShowInTaskBar = false,
             double Width = 0,

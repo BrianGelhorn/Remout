@@ -4,6 +4,7 @@
 	xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
 	xmlns:customs="clr-namespace:Remout.Customs"
 	xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+	xmlns:i="http://schemas.microsoft.com/xaml/behaviors"
 	xmlns:local="clr-namespace:Remout.Views"
 	xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
 	xmlns:prism="http://prismlibrary.com/"
@@ -16,11 +17,16 @@
 	prism:ViewModelLocator.AutoWireViewModel="True"
 	Visibility="{Binding WindowVisibility, Mode=TwoWay}"
 	mc:Ignorable="d">
+	<i:Interaction.Triggers>
+		<i:EventTrigger EventName="Closing">
+			<prism:InvokeCommandAction Command="{Binding CloseWindowCommand}" />
+		</i:EventTrigger>
+	</i:Interaction.Triggers>
 	<Grid>
 		<Grid.RowDefinitions>
 			<RowDefinition Height="216*" />
 			<RowDefinition Height="60" />
-			<RowDefinition Height="100" />
+			<RowDefinition Height="130" />
 			<RowDefinition Height="181*" />
 			<RowDefinition Height="60" />
 		</Grid.RowDefinitions>
@@ -43,7 +49,21 @@
 				</ItemsControl.ItemsPanel>
 				<ItemsControl.ItemTemplate>
 					<DataTemplate>
-						<TextBlock Margin="8,0,8,0" Text="{Binding}" />
+						<Grid>
+							<Grid.ColumnDefinitions>
+								<ColumnDefinition Width="100" />
+								<ColumnDefinition Width="*" />
+							</Grid.ColumnDefinitions>
+							<TextBlock
+								Grid.Column="0"
+								Margin="8,0,8,0"
+								Text="{Binding Name}" />
+							<ProgressBar
+								Grid.Column="1"
+								Width="80"
+								Height="20"
+								Value="{Binding ProgressValue}" />
+						</Grid>
 					</DataTemplate>
 				</ItemsControl.ItemTemplate>
 			</ItemsControl>
@@ -75,7 +95,7 @@
 				<Button
 					Width="92"
 					Margin="0,0,8,8"
-					Command="{Binding CloseWindowCommand}"
+					Command="{Binding OnCancelButtonClickedCommand}"
 					CommandParameter="{Binding ElementName=Window}"
 					Content="Cancel" />
 				<Button

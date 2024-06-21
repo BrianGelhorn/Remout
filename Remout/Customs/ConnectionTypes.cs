@@ -7,15 +7,9 @@ using System.IO;
 using System.Linq;
 using System.Net.Sockets;
 using System.Reflection;
-using System.Runtime.Serialization.Formatters.Binary;
-using System.Security.Cryptography;
 using System.Text;
-using System.Threading.Tasks;
-using System.Windows.Media.Animation;
-using Microsoft.Extensions.FileProviders;
 using Newtonsoft.Json;
 using Remout.Models;
-
 namespace Remout.Customs
 {
     public class ConnectionTypes
@@ -23,9 +17,10 @@ namespace Remout.Customs
         public enum ConnectionType
         {
             File = 0,
-            Chat =1,
+            Chat = 1, 
             SyncMovie = 2,
-            CheckPort = 3
+            CheckPort = 3,
+            InitialConnection = 4
         }
 
         static Type GetConnectionType(ConnectionType connectionType)
@@ -35,6 +30,7 @@ namespace Remout.Customs
                 ConnectionType.File => typeof(FileConnection),
                 ConnectionType.Chat => typeof(ChatConnection),
                 ConnectionType.SyncMovie => typeof(SyncMovieConnection),
+                ConnectionType.InitialConnection => typeof(InitialConnection),
                 _ => throw new Exception("You gotta set the connection type value")
             };
         }
@@ -44,14 +40,13 @@ namespace Remout.Customs
             public FileConnection(TcpClient tcpClient) : this()
             {
                 Client = tcpClient.Client;
-                Task.Run(ListenForFile);
             }
 
             //TODO: Implement MD5 File Verification
             public async Task ListenForFile()
             {
                 var tcpStream = GetStream();
-                var buffer = new byte[2048];
+                var buffer = new byte[4096];
                 var bufferLen = await tcpStream.ReadAsync(buffer);
                 var movieData = Encoding.UTF8.GetString(buffer, 0, bufferLen);
                 var parsed = int.TryParse(movieData.Split(";")[0], out var movieSize);
@@ -62,10 +57,8 @@ namespace Remout.Customs
                 var fileStream = File.Create(pathForFile);
                 bufferLen = await tcpStream.ReadAsync(buffer);
                 await fileStream.WriteAsync(buffer, 0, bufferLen);
-                while (true)
+                while ((bufferLen = await tcpStream.ReadAsync(buffer, 0, 4096)) > 0)
                 {
-                    bufferLen = await tcpStream.ReadAsync(buffer);
-                    if (bufferLen == 0) break;
                     await fileStream.WriteAsync(buffer, 0, bufferLen);
                 }
                 fileStream.Close();
@@ -74,26 +67,29 @@ namespace Remout.Customs
 
             public event EventHandler FileCompletelyReceived;
 
-            public void OnFileCompletelyReceived()
+            virtual protected void OnFileCompletelyReceived()
             {
-                FileCompletelyReceived.Invoke(this, EventArgs.Empty);
+                FileCompletelyReceived?.Invoke(this, EventArgs.Empty);
             }
 
-            public async Task SendFileAsync(string Name, FileStream file)
+            public async Task SendFileAsync(string Name, FileStream file, IProgress<int> progress)
             {
                 var tcpStream = GetStream();
-                var fileInfo = Encoding.UTF8.GetBytes($"{(file.Length).ToString()};{Name}");
+                var fileSize = file.Length;
+                var fileInfo = Encoding.UTF8.GetBytes($"{fileSize};{Name}");
                 await tcpStream.WriteAsync(fileInfo);
                 var buffer = new byte[8192];
-                while (true)
+                long bytesSent = 0;
+                var bufferLen = 0;
+                while ((bufferLen = await file.ReadAsync(buffer, 0, 8192)) > 0)
                 {
-                    var bufferlen = await file.ReadAsync(buffer);
-                    if(bufferlen == 0) break;
-                    await tcpStream.WriteAsync(buffer, 0, bufferlen);
+                    await tcpStream.WriteAsync(buffer, 0,bufferLen);
+                    bytesSent += bufferLen;
+                    progress.Report((int)((bytesSent*100)/fileSize));
                 }
                 file.Close();
                 Close();
-                Dispose();
+                //Dispose();
             }
         }
 
@@ -134,8 +130,8 @@ namespace Remout.Customs
                     if (tcpStream.DataAvailable)
                     {
                         var buffer = new byte[128];
-                        await tcpStream.ReadExactlyAsync(buffer);
-                        var decodedData = Encoding.UTF8.GetString(buffer);
+                        var bufferLen = await tcpStream.ReadAsync(buffer);
+                        var decodedData = Encoding.UTF8.GetString(buffer, 0, bufferLen);
                         OnAskedForData((TcpServer.DataType)(int.Parse(decodedData)));
                     }
                     await Task.Delay(50);
@@ -163,18 +159,39 @@ namespace Remout.Customs
 
             }
         }
-    }
-
-    public class CheckPortConnection() : TcpClient
-    {
-        public CheckPortConnection(TcpClient tcpClient) : this()
+        public class InitialConnection() : TcpClient
         {
-            Client = tcpClient.Client;
+            private NetworkStream tcpStream;
+            public InitialConnection(TcpClient tcpClient) : this()
+            {
+                Client = tcpClient.Client;
+                tcpStream = GetStream();
+            }
+
+            public async Task SendGuidAsync(Guid guid)
+            {
+                var guidBytes = guid.ToByteArray();
+                await tcpStream.WriteAsync(guidBytes);
+            }
+
+            public async Task SendNameAsync(string name)
+            {
+                var nameBytes = Encoding.UTF8.GetBytes(name);
+                await tcpStream.WriteAsync(nameBytes);
+            }
         }
 
-        public async Task SendPortAnswer()
+        public class CheckPortConnection() : TcpClient
         {
-            await GetStream().WriteAsync("Remout"u8.ToArray());
+            public CheckPortConnection(TcpClient tcpClient) : this()
+            {
+                Client = tcpClient.Client;
+            }
+
+            public async Task SendPortAnswer()
+            {
+                await GetStream().WriteAsync("Remout"u8.ToArray());
+            }
         }
     }
 }

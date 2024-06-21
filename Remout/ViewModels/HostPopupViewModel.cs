@@ -11,7 +11,6 @@ using LibVLCSharp.Shared;
 using Open.Nat;
 using Remout.Services;
 using System.Reflection;
-using System.Windows.Threading;
 using Remout.Customs;
 using Remout.Views;
 
@@ -49,12 +48,15 @@ namespace Remout.ViewModels
             get => _canHostMovie;
             set => SetProperty(ref _canHostMovie, value);
         }
-
-        public ObservableCollection<string> ParticipantsList { get; set; } = [];
         private TcpServer tcpServer;
 
+
+        public ObservableCollection<Participant?> ParticipantsList { get; set; } = [];
+
         public DelegateCommand OnHostButtonClickedCommand { get; set; }
-        public DelegateCommand<Window> CloseWindowCommand { get; set; }
+        public DelegateCommand<Window> OnCancelButtonClickedCommand {get; set; }
+        public DelegateCommand CloseWindowCommand { get; set; }
+
         private SynchronizationContext uiContext;
         public HostPopupViewModel(ISharedDataStore sharedDataStore, IUpnpService upnpService)
         {
@@ -63,7 +65,8 @@ namespace Remout.ViewModels
             Movie = sharedDataStore.CurrentMovieSelected;
             OnHostButtonClickedCommand =
                 new DelegateCommand(OpenMovie, HostButtonCanExecute).ObservesProperty(() => CanHostMovie);
-            CloseWindowCommand = new DelegateCommand<Window>(CloseWindow);
+            OnCancelButtonClickedCommand = new DelegateCommand<Window>(OnCancelButtonClicked);
+            CloseWindowCommand = new DelegateCommand(CloseWindow);
             Task.Run(async () =>
             {
                 Ip = await upnpService.GetPublicIp();
@@ -80,24 +83,39 @@ namespace Remout.ViewModels
         {
             switch(tcpClient)
             {
+                case ConnectionTypes.InitialConnection:
+                {
+                        var name = await tcpServer.AskForData(tcpClient, TcpServer.DataType.Name, 128);
+                        var guid = Guid.NewGuid();
+                        await tcpServer.SendDataAsync(tcpClient, TcpServer.DataType.Guid, guid);
+                        uiContext.Send(_ => ParticipantsList.Add(new Participant(guid, name)), null);
+                        break;
+                }
                 case ConnectionTypes.SyncMovieConnection:
                 {
-                    var name = await tcpServer.AskForData(tcpClient, TcpServer.DataType.Name, 128);
-                    uiContext.Send(x => ParticipantsList.Add(name), null);
+                    
                     break;
                 }
                 case ConnectionTypes.FileConnection fileConnection:
                 {
-                    await fileConnection.SendFileAsync(Movie!.Title!, File.OpenRead(Movie!.MovieDir!.AbsolutePath));
+                        var deviceGuid = await tcpServer.GetClientGuid(fileConnection);
+                        var participant = ParticipantsList.Where(participant => participant!.Id == deviceGuid).First();
+                        if(participant == null) break;
+                    await fileConnection.SendFileAsync(Movie!.Title!, File.OpenRead(Movie!.MovieDir!.AbsolutePath), participant.Progress);
                     break;
                 }
                 default: return;
             }
         }
 
-        private void CloseWindow(Window window)
+        private void CloseWindow()
         {
+            tcpServer.StopTcpServer();
+        }
 
+        private void OnCancelButtonClicked(Window window)
+        {
+            tcpServer.StopTcpServer();
             window.Close();
         }
 
@@ -115,6 +133,41 @@ namespace Remout.ViewModels
             WindowVisibility = Visibility.Collapsed;
             vlcWindow.Closing += (_, _) => { WindowVisibility = Visibility.Visible;};
             vlcWindow.ShowDialog();
+        }
+
+
+        public class Participant : BindableBase
+        {
+            public readonly Guid Id;
+
+            private string _name = "";
+
+            public string Name
+            {
+                get => _name;
+                set => SetProperty(ref _name, value);
+            }
+            private int _progressValue;
+
+            public int ProgressValue
+            {
+                get => _progressValue;
+                set => SetProperty(ref _progressValue, value);
+            }
+
+            public IProgress<int> Progress;
+
+            public Participant(Guid id, string name)
+            {
+                Id = id;
+                Name = name;
+                Progress = new Progress<int>(SetProgressValue);
+            }
+
+            private void SetProgressValue(int value)
+            {
+                ProgressValue = value;
+            }
         }
     }
 }
